@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==============================================
+// SUREFIRE PLUMBING & HEATING — Schema v2.0
+// Constitution: Local-first, expandable, clear identity
+// ==============================================
+
+model Region {
+  id               String   @id @default(uuid())
+  code             String   @unique // e.g. LIVERPOOL, GREATER_MANCHESTER
+  name             String
+  status           String   @default("inactive") // active/conditional/inactive
+  postcodePrefixes String[] // ["L1", "L2", "WA1"]
+  allowedPostcodes String[] // for GREATER_MANCHESTER selected areas
+  config           Json?    // travelWeight, boundaries etc.
+
+  bookings Booking[]
+  traders  Trader[]
+  engineers Engineer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Service {
+  id          String  @id @default(uuid())
+  name        String  // "Boiler Installation", "Toilet Repair"
+  category    String  // Plumbing / Heating / Boiler / HotWater
+  description String?
+  baseMin     Decimal?
+  baseMax     Decimal?
+  durationAvg Int?    // minutes
+  isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
+}
+
+model Customer {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  phone        String?
+  name         String?
+  addresses    Json      // saved addresses
+  emailVerified DateTime?
+  bookings     Booking[]
+
+  createdAt DateTime @default(now())
+}
+
+model Engineer {
+  id        String  @id @default(uuid())
+  name      String
+  email     String  @unique
+  phone     String
+  regionId  String?
+  region    Region? @relation(fields: [regionId], references: [id])
+  isActive  Boolean @default(true)
+
+  bookings Booking[]
+}
+
+model Trader {
+  id               String  @id @default(uuid())
+  businessName     String
+  contactName      String
+  tradeType        String
+  email            String  @unique
+  phone            String
+  postcode         String
+  serviceAreaNote  String?
+  experienceYears  Int?
+  qualifications   String[]
+  insuranceRef     String?
+  portfolioUrls    String[]
+  status           String  @default("APPLICATION_SUBMITTED")
+  // APPLICATION_SUBMITTED / UNDER_REVIEW / VERIFIED / REJECTED / SUSPENDED / EXPIRED
+  appliedAt        DateTime @default(now())
+  reviewedAt       DateTime?
+  regionId         String?
+  region           Region?  @relation(fields: [regionId], references: [id])
+
+  bookings Booking[]
+}
+
+model Booking {
+  id              String   @id @default(uuid())
+  referenceNumber String   @unique // PH-NW-xxxxxx-xxxx
+
+  // Identity — CONSTITUTION: clearly distinguish own vs partner
+  isOurOwnService Boolean  @default(true)
+  traderId        String?
+  trader          Trader?  @relation(fields: [traderId], references: [id])
+
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id])
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id])
+  engineerId      String?
+  engineer        Engineer? @relation(fields: [engineerId], references: [id])
+  regionId        String
+  region          Region   @relation(fields: [regionId], references: [id])
+
+  status          String   @default("pending")
+  // pending / confirmed / completed / cancelled
+
+  scheduledDate   DateTime
+  startTime       DateTime
+  endTime         DateTime
+
+  address         String
+  postcode        String
+  problemDesc     String?
+  photoUrls       String[] // max 9 per booking
+
+  priceEstLo      Decimal?
+  priceEstHi      Decimal?
+  finalPrice      Decimal?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt>
+}
