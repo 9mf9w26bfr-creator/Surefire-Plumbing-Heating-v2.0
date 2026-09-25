@@ -1,25 +1,44 @@
-'use client';
+import Link from 'next/link';
+import { Calendar, Users, MapPin, Settings } from 'lucide-react';
 
-export default function AdminPage() {
+export default function AdminHomePage() {
   return (
-    <div className="space-y-6 py-4">
-      <h1 className="text-2xl font-bold text-primary">Admin Dashboard</h1>
-      <p className="text-gray-500">Restricted area — staff sign-in required.</p>
-      
-      <div className="space-y-3 pt-4">
-        <input
-          type="email"
-          placeholder="Staff Email"
-          className="w-full p-3 border border-gray-300 rounded-lg"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full p-3 border border-gray-300 rounded-lg"
-        />
-        <button className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition-colors">
-          Sign In to Admin
-        </button>
+    <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+      <h1 className="text-2xl font-bold text-[#0F2B4A]">Admin Dashboard</h1>
+      <p className="text-gray-500">Surefire Plumbing & Heating — Management</p>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Link
+          href="/admin/bookings"
+          className="flex flex-col items-center gap-3 p-5 bg-white border border-gray-200 rounded-xl hover:border-[#0F2B4A]/40 hover:shadow-md transition-all"
+        >
+          <Calendar size={28} className="text-[#0F2B4A]" />
+          <span className="font-medium">Bookings</span>
+        </Link>
+
+        <Link
+          href="/admin/traders"
+          className="flex flex-col items-center gap-3 p-5 bg-white border border-gray-200 rounded-xl hover:border-[#0F2B4A]/40 hover:shadow-md transition-all"
+        >
+          <Users size={28} className="text-[#0F2B4A]" />
+          <span className="font-medium">Traders</span>
+        </Link>
+
+        <Link
+          href="/admin/service-areas"
+          className="flex flex-col items-center gap-3 p-5 bg-white border border-gray-200 rounded-xl hover:border-[#0F2B4A]/40 hover:shadow-md transition-all"
+        >
+          <MapPin size={28} className="text-[#0F2B4A]" />
+          <span className="font-medium">Service Areas</span>
+        </Link>
+
+        <Link
+          href="/admin/settings"
+          className="flex flex-col items-center gap-3 p-5 bg-white border border-gray-200 rounded-xl hover:border-[#0F2B4A]/40 hover:shadow-md transition-all"
+        >
+          <Settings size={28} className="text-[#0F2B4A]" />
+          <span className="font-medium">Settings</span>
+        </Link>
       </div>
     </div>
   );
