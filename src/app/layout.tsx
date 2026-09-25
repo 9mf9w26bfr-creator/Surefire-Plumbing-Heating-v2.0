@@ -1,21 +1,16 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { Calendar, Info, Users, Package, User, Clock, MapPin } from 'lucide-react';
+import { Calendar, Info, Users, Package, User, Clock, MapPin, LogIn } from 'lucide-react';
 import './globals.css';
 
-// ==============================================
-// ⚙️ 全局配置 — 上传图片到 public/ 目录即可显示
-// ==============================================
 const COMPANY = {
   name: 'Surefire Plumbing & Heating',
   tagline: 'Professional Service Across North West England',
   logoText: 'SUREFIRE',
-  // 📌 LOGO：上传到 public/logo.png 建议 300×150px 透明背景
   logoUrl: '/logo.png',
-  // 📌 横幅：上传到 public/service-banner.jpg 建议 600×150px
   bannerUrl: '/service-banner.jpg',
   serviceArea: 'Liverpool • Merseyside • Cheshire • Runcorn • Widnes • Warrington • St Helens',
   experience: '20+ Years Local Professional Experience',
@@ -35,86 +30,129 @@ const navItems = [
   { label: 'PROFILE', href: '/profile', icon: User },
 ];
 
+type UserState = { name: string; email: string } | null;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [user, setUser] = useState<UserState>(null);
+
+  useEffect(() => {
+    const checkUser = () => {
+      try {
+        const stored = localStorage.getItem('surefire_user');
+        setUser(stored ? JSON.parse(stored) : null);
+      } catch {
+        setUser(null);
+      }
+    };
+    checkUser();
+    window.addEventListener('user-updated', checkUser);
+    return () => window.removeEventListener('user-updated', checkUser);
+  }, []);
 
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col bg-white text-gray-900">
         {/* ==============================================
-            🔝 全局固定头部 — LOGO : 横幅 = 1 : 2 并排
+            🔝 全局头部 — 自适应比例并排
             ============================================== */}
         <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
-          <div className="max-w-2xl mx-auto px-4 py-3">
-            {/* 容器：LOGO 占 1份，横幅占 2份 → 严格 1:2 */}
-            <div className="flex flex-col md:flex-row items-center gap-3 w-full">
+          <div className="max-w-2xl mx-auto px-3 py-3">
+            
+            {/* ✅ 并排容器：自动适配内容比例，不强制固定宽高 */}
+            <div className="flex flex-row items-center gap-3 w-full">
               
-              {/* 左侧 — LOGO 区域 1/3 */}
-              <Link href="/" className="w-full md:w-1/3 h-24 relative shrink-0">
-                {COMPANY.logoUrl ? (
-                  <Image
-                    src={COMPANY.logoUrl}
-                    alt={COMPANY.logoText}
-                    fill
-                    className="object-contain"
-                    sizes="(max-width: 768px) 100vw, 200px"
-                    priority
-                    unoptimized
-                  />
-                ) : (
-                  <span className="text-2xl font-bold text-blue-900 tracking-tight flex items-center justify-center h-full">
-                    {COMPANY.logoText}
-                  </span>
-                )}
+              {/* 左侧 — LOGO：保持原生比例，最大高度限制不挤压横幅 */}
+              <Link 
+                href="/" 
+                className="shrink-0 max-w-[30%]"
+              >
+                <div className="relative w-auto h-14 sm:h-16">
+                  {COMPANY.logoUrl ? (
+                    <Image
+                      src={COMPANY.logoUrl}
+                      alt={COMPANY.logoText}
+                      width={160}
+                      height={80}
+                      className="w-auto h-full object-contain"
+                      style={{ aspectRatio: 'auto' }}
+                      priority
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-lg font-bold text-blue-900 tracking-tight whitespace-nowrap">
+                      {COMPANY.logoText}
+                    </span>
+                  )}
+                </div>
               </Link>
 
-              {/* 右侧 — 横幅区域 2/3 */}
-              <div className="w-full md:w-2/3 h-24 rounded-xl overflow-hidden bg-gradient-to-r from-blue-800 to-blue-600 relative">
-                {COMPANY.bannerUrl ? (
-                  <Image
-                    src={COMPANY.bannerUrl}
-                    alt={`${COMPANY.name} — ${COMPANY.tagline}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, calc(200%/3)"
-                    priority
-                    unoptimized
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-white px-3">
-                    <p className="font-bold text-base">{COMPANY.name}</p>
-                    <p className="text-sm opacity-80 mt-0.5">{COMPANY.tagline}</p>
-                  </div>
-                )}
+              {/* 右侧 — 横幅：自适应剩余空间，保持原图比例 */}
+              <div className="flex-1 min-w-0">
+                <div className="relative w-full h-14 sm:h-16 rounded-xl overflow-hidden bg-gradient-to-r from-blue-800 to-blue-600">
+                  {COMPANY.bannerUrl ? (
+                    <Image
+                      src={COMPANY.bannerUrl}
+                      alt={`${COMPANY.name} — ${COMPANY.tagline}`}
+                      fill
+                      className="object-cover"
+                      sizes="70vw"
+                      style={{ aspectRatio: 'auto' }}
+                      priority
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-white px-2">
+                      <p className="font-bold text-xs sm:text-sm">{COMPANY.name}</p>
+                      <p className="text-xs opacity-80 mt-0.5 text-center line-clamp-1">
+                        {COMPANY.tagline}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* 底部副标题 */}
-            <p className="text-xs text-gray-500 text-right mt-2">
-              {COMPANY.experience}
-            </p>
+            {/* 第二行：经验标语 + 用户状态 */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mt-2 gap-2">
+              <p className="text-xs text-gray-500">
+                {COMPANY.experience}
+              </p>
+              
+              <div className="flex items-center gap-2 text-sm">
+                {user ? (
+                  <div className="flex items-center gap-2 text-blue-700 font-medium">
+                    <User size={16} />
+                    <span className="truncate max-w-[120px]">{user.name}</span>
+                  </div>
+                ) : (
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-1.5 bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-800 transition-colors"
+                  >
+                    <LogIn size={14} />
+                    Register
+                  </Link>
+                )}
+              </div>
+            </div>
           </div>
         </header>
 
-        {/* ==============================================
-            📝 页面主内容
-            ============================================== */}
+        {/* 主内容区 */}
         <main className="flex-1">
-          <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="max-w-2xl mx-auto px-3 py-4">
             {children}
           </div>
         </main>
 
-        {/* ==============================================
-            🔽 全局固定底部
-            ============================================== */}
+        {/* 底部 */}
         <footer className="border-t border-gray-100 bg-gray-50 mt-6">
-          <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-            {/* 营业时间 */}
+          <div className="max-w-2xl mx-auto px-3 py-4 space-y-4">
             <div>
               <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-2 text-sm">
                 <Clock size={15} className="text-blue-700" />
@@ -130,7 +168,6 @@ export default function RootLayout({
               </div>
             </div>
 
-            {/* 服务区域 */}
             <div className="bg-blue-50 rounded-lg p-3">
               <h3 className="font-semibold text-blue-900 flex items-center gap-2 mb-1.5 text-sm">
                 <MapPin size={15} />
@@ -145,8 +182,7 @@ export default function RootLayout({
             </div>
           </div>
 
-          {/* 底部导航栏 */}
-          <div className="border-t border-gray-200 bg-white px-4 py-3">
+          <div className="border-t border-gray-200 bg-white px-3 py-3">
             <div className="max-w-2xl mx-auto flex justify-between">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -155,7 +191,7 @@ export default function RootLayout({
                   <Link
                     key={item.label}
                     href={item.href}
-                    className={`flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
+                    className={`flex flex-col items-center gap-1 text-xs font-medium transition-colors px-2 ${
                       isActive ? 'text-blue-700' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
