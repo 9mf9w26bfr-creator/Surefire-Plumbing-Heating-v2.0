@@ -68,7 +68,7 @@ export default function ProtectedRoute({ children, isAdmin = false }: ProtectedR
               type="password"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
-              placeholder="Enter PIN (Default: surefire2026)"
+              placeholder="Enter administrator PIN"
               className="w-full text-center px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono tracking-widest"
               autoFocus
             />
