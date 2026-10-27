@@ -36,4 +36,5 @@ lerna-debug.log*
 # Temp
 *.tmp
 *.temp
-.cache/
+.cache/data/*.db
+data/*.json
