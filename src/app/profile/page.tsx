@@ -1,18 +1,17 @@
 'use client';
 /**
  * SUREFIRE PLUMBING & HEATING — Profile / Account Page
- * Flow: Register → Email Verify → Dashboard → View Bookings
+ * Flow: Sign In / Register → Email Verification Code → Dashboard → View Bookings
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   User, Mail, Calendar, LogOut, 
-  CheckCircle2, AlertCircle, ArrowLeft
+  CheckCircle2, AlertCircle, ArrowLeft, ShieldCheck
 } from 'lucide-react';
 import { 
-  registerUser, 
-  verifyEmail, 
-  saveToAllUsers, 
+  registerOrLoginUser, 
+  verifyEmailCode, 
   getCurrentUser, 
   logoutUser,
   type AuthUser
@@ -21,120 +20,131 @@ import {
 export default function ProfilePage() {
   const router = useRouter();
   const [step, setStep] = useState<'auth' | 'verify' | 'dashboard'>('auth');
+  const [authMode, setAuthMode] = useState<'register' | 'login'>('login');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
-  const [pendingCode, setPendingCode] = useState('');
+  const [devCodeHint, setDevCodeHint] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
-  // ✅ 页面加载时检查登录状态
   useEffect(() => {
     const user = getCurrentUser();
     if (user) {
+      setCurrentUser(user);
       setStep('dashboard');
     }
   }, []);
 
-  // ✅ 注册提交
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
+    setDevCodeHint(null);
 
-    const result = registerUser(email, name);
+    const result = await registerOrLoginUser(email, authMode === 'register' ? name : undefined);
     if (result.success) {
-      setPendingCode(result.code);
       setMessageType('success');
-      setMessage(`演示验证码：${result.code}（实际将发送至邮箱）`);
+      setMessage(result.message);
+      if (result.devCode) {
+        setDevCodeHint(result.devCode);
+      }
       setStep('verify');
     } else {
       setMessageType('error');
-      setMessage(result.message || '注册失败，请重试');
+      setMessage(result.message || 'Failed to send verification code. Please try again.');
     }
     setIsLoading(false);
   };
 
-  // ✅ 验证提交
-  const handleVerify = (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
 
-    const user = verifyEmail(code);
-    if (user) {
-      saveToAllUsers(user);
+    const res = await verifyEmailCode(email, code);
+    if (res.success && res.user) {
+      setCurrentUser(res.user);
       setMessageType('success');
-      setMessage('验证成功！正在进入...');
-      // 通知布局更新用户名
-      window.dispatchEvent(new CustomEvent('user-updated'));
-      
+      setMessage('Verified successfully! Redirecting...');
       setTimeout(() => {
         setStep('dashboard');
-        router.refresh();
-      }, 1000);
+      }, 600);
     } else {
       setMessageType('error');
-      setMessage('验证码错误或已过期');
+      setMessage(res.message || 'Incorrect verification code. Please try again.');
     }
     setIsLoading(false);
   };
 
-  // ✅ 退出登录
   const handleLogout = () => {
     logoutUser();
-    // 通知布局清除用户名
-    window.dispatchEvent(new CustomEvent('user-updated'));
-    
+    setCurrentUser(null);
     setStep('auth');
     setEmail('');
     setName('');
     setCode('');
-    setMessage('已退出登录');
+    setMessage('You have been signed out.');
     setMessageType('success');
   };
 
-  const user = getCurrentUser();
-
-  // ─── 仪表盘：已登录 ───
-  if (step === 'dashboard' && user) {
+  // ─── DASHBOARD: Logged In ───
+  if (step === 'dashboard' && currentUser) {
     return (
       <div className="space-y-6 py-6 max-w-md mx-auto px-4">
         <div className="text-center space-y-2">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
             <User size={32} className="text-blue-700" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome, {user.name}</h1>
-          <p className="text-gray-600">{user.email}</p>
-          <p className="text-sm text-green-600 flex items-center justify-center gap-1.5">
+          <h1 className="text-2xl font-bold text-gray-900">Welcome, {currentUser.name}</h1>
+          <p className="text-gray-600">{currentUser.email}</p>
+          <p className="text-sm text-green-600 flex items-center justify-center gap-1.5 font-medium">
             <CheckCircle2 size={16} />
-            Verified Account
+            Verified Customer Account
+          </p>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-900 space-y-1">
+          <p className="font-semibold flex items-center gap-1">
+            <ShieldCheck size={14} className="text-blue-700" />
+            North West Service Priority
+          </p>
+          <p className="text-blue-700">
+            Your registered address is covered under our Liverpool, Merseyside &amp; Cheshire local response team.
           </p>
         </div>
 
         <div className="space-y-3 pt-2">
           <button
-            onClick={() => router.push('/profile/bookings')}
-            className="w-full flex items-center justify-center gap-2 bg-blue-700 text-white py-3 rounded-xl font-semibold hover:bg-blue-800 transition-colors"
+            onClick={() => router.push('/bookings')}
+            className="w-full flex items-center justify-center gap-2 bg-blue-700 text-white py-3.5 rounded-xl font-semibold hover:bg-blue-800 transition-colors shadow-sm"
           >
-            <Calendar size={20} />
+            <Calendar size={18} />
             View My Bookings
           </button>
 
           <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 border border-gray-200 py-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
+            onClick={() => router.push('/booking')}
+            className="w-full flex items-center justify-center gap-2 border border-blue-200 text-blue-800 py-3 rounded-xl font-medium hover:bg-blue-50 transition-colors"
           >
-            <LogOut size={18} />
-            Log Out
+            Book Another Service
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 border border-gray-200 py-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors text-sm"
+          >
+            <LogOut size={16} />
+            Sign Out
           </button>
         </div>
       </div>
     );
   }
 
-  // ─── 验证邮箱 ───
+  // ─── VERIFY CODE ───
   if (step === 'verify') {
     return (
       <div className="space-y-6 py-8 max-w-md mx-auto px-4">
@@ -147,12 +157,15 @@ export default function ProfilePage() {
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft size={16} />
-          Back to Register
+          Back to Sign In
         </button>
 
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">Verify Your Email</h1>
-          <p className="text-gray-600">Enter the 6-digit code sent to<br /><strong>{email}</strong></p>
+          <h1 className="text-2xl font-bold text-gray-900">Check Your Email</h1>
+          <p className="text-gray-600 text-sm">
+            Enter the 6-digit verification code sent to<br />
+            <strong>{email}</strong>
+          </p>
         </div>
 
         {message && (
@@ -166,35 +179,62 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {devCodeHint && (
+          <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 text-center">
+            Development Mode Code: <strong>{devCodeHint}</strong>
+          </div>
+        )}
+
         <form onSubmit={handleVerify} className="space-y-4">
           <input
             type="text"
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="Enter 6-digit code"
+            onChange={(e) => setCode(e.target.value.trim())}
+            placeholder="000000"
             maxLength={6}
-            className="w-full text-center text-2xl tracking-widest py-3 border rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full text-center text-3xl tracking-widest py-3 border border-gray-300 rounded-xl font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
-            autoComplete="one-time-code"
+            autoFocus
           />
           <button
             type="submit"
             disabled={isLoading || code.length < 6}
-            className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-green-600 text-white py-3.5 rounded-xl font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
-            {isLoading ? 'Verifying...' : 'Verify & Create Account'}
+            {isLoading ? 'Verifying...' : 'Verify & Continue'}
           </button>
         </form>
       </div>
     );
   }
 
-  // ─── 注册表单 ───
+  // ─── AUTH FORM (SIGN IN / REGISTER) ───
   return (
     <div className="space-y-6 py-8 max-w-md mx-auto px-4">
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-        <p className="text-gray-600">Register to manage your bookings</p>
+        <h1 className="text-2xl font-bold text-gray-900">Customer Account</h1>
+        <p className="text-gray-600 text-sm">Sign in to manage and track your plumbing appointments</p>
+      </div>
+
+      <div className="flex bg-gray-100 rounded-lg p-1 text-sm font-medium">
+        <button
+          type="button"
+          onClick={() => { setAuthMode('login'); setMessage(''); }}
+          className={`flex-1 py-2 rounded-md transition-all ${
+            authMode === 'login' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          Sign In
+        </button>
+        <button
+          type="button"
+          onClick={() => { setAuthMode('register'); setMessage(''); }}
+          className={`flex-1 py-2 rounded-md transition-all ${
+            authMode === 'register' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          New Customer
+        </button>
       </div>
 
       {message && (
@@ -208,32 +248,34 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <form onSubmit={handleRegister} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            <User size={14} className="inline mr-1" />
-            Your Name
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="John Smith"
-            required
-          />
-        </div>
+      <form onSubmit={handleRequestCode} className="space-y-4">
+        {authMode === 'register' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <User size={14} className="inline mr-1 text-gray-500" />
+              Full Name *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g. John Smith"
+              required={authMode === 'register'}
+            />
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            <Mail size={14} className="inline mr-1" />
-            Email Address
+            <Mail size={14} className="inline mr-1 text-gray-500" />
+            Email Address *
           </label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="you@example.com"
             required
           />
@@ -242,9 +284,9 @@ export default function ProfilePage() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-blue-700 text-white py-3 rounded-xl font-semibold hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-blue-700 text-white py-3.5 rounded-xl font-semibold hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
         >
-          {isLoading ? 'Sending...' : 'Continue'}
+          {isLoading ? 'Sending Code...' : authMode === 'login' ? 'Send Sign-in Code' : 'Create Account'}
         </button>
       </form>
     </div>

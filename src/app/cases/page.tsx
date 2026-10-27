@@ -65,7 +65,7 @@ export default function CasesReviewsPage() {
       {/* 页面标题 */}
       <div className="mb-2">
         <h1 className="text-2xl font-bold text-gray-900">Recent Work & Reviews</h1>
-        <p className="text-gray-500 mt-1">See what we've been working on and what our customers say</p>
+        <p className="text-gray-500 mt-1">See what we&apos;ve been working on and what our customers say</p>
       </div>
 
       {/* 标签切换 */}
@@ -144,7 +144,7 @@ export default function CasesReviewsPage() {
                   ))}
                 </div>
               </div>
-              <p className="text-sm text-gray-600 mt-3 leading-relaxed">"{r.comment}"</p>
+              <p className="text-sm text-gray-600 mt-3 leading-relaxed">&ldquo;{r.comment}&rdquo;</p>
             </div>
           ))}
         </div>

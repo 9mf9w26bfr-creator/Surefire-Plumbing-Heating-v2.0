@@ -2,16 +2,16 @@
 /**
  * SUREFIRE PLUMBING & HEATING — Home Page
  * Constitution: BOOK is primary entry; local identity front-and-centre
+ * Updated: Remove duplicate service area (moved to footer only)
  */
 import Link from 'next/link';
-import { Calendar, Wrench, Shield, Clock, MapPin, ChevronRight } from 'lucide-react';
+import { Calendar, Wrench, Shield, Clock, ChevronRight } from 'lucide-react';
 
 export default function HomePage() {
   return (
     <div className="space-y-8 py-6 max-w-lg mx-auto px-4">
       {/* ==============================================
-          Hero Section — 黄金分割视觉比例
-          标题区高度与留白接近 1:0.618
+          Hero Section
           ============================================== */}
       <section className="text-center space-y-4 py-3">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
@@ -87,20 +87,8 @@ export default function HomePage() {
       </section>
 
       {/* ==============================================
-          服务区域
+          服务区已移至底部 Footer，此处不再重复显示 ✅
           ============================================== */}
-      <section className="bg-blue-50 p-5 rounded-xl border border-blue-100">
-        <h2 className="flex items-center gap-2 font-semibold text-blue-900 mb-3">
-          <MapPin size={18} />
-          Service Area
-        </h2>
-        <p className="text-sm font-medium text-blue-900 leading-relaxed">
-          Liverpool • Merseyside • Cheshire • Runcorn • Widnes • Warrington • St Helens
-        </p>
-        <p className="text-xs text-blue-600 mt-2">
-          Selected areas of Greater Manchester
-        </p>
-      </section>
     </div>
   );
 }

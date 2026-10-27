@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { format, addMonths, startOfDay, isBefore, isSameDay } from 'date-fns';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -16,17 +16,17 @@ const ALL_SLOTS = [
 export default function DateTimePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
   const service = searchParams.get('service') || '';
-
-  if (!service) {
-    router.replace('/booking');
-    return null;
-  }
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string>('');
+
+  useEffect(() => {
+    if (!service) {
+      router.replace('/booking');
+    }
+  }, [service, router]);
 
   const availableSlots = useMemo(() => {
     if (!selectedDate) return [];
@@ -34,7 +34,7 @@ export default function DateTimePage() {
     return ALL_SLOTS.filter(slot => slot.days.includes(dayOfWeek));
   }, [selectedDate]);
 
-  const generateCalendarDays = () => {
+  const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1);
@@ -64,9 +64,7 @@ export default function DateTimePage() {
       });
     }
     return days;
-  };
-
-  const calendarDays = generateCalendarDays();
+  }, [currentMonth]);
 
   const handleDateSelect = (date: Date | null, disabled: boolean) => {
     if (!date || disabled) return;
@@ -74,15 +72,18 @@ export default function DateTimePage() {
     setSelectedSlotId('');
   };
 
-  const canContinue = selectedDate && selectedSlotId && selectedDate.getDay() !== 0;
+  const canContinue = Boolean(selectedDate && selectedSlotId && selectedDate.getDay() !== 0);
 
-  // ✅ 关键修正：直接在本页选择时段后跳转到详情页，不再跳转到 select-slot
   const handleContinue = () => {
-    if (!canContinue) return;
+    if (!canContinue || !selectedDate) return;
     router.push(
-      `/booking/details?service=${encodeURIComponent(service)}&date=${format(selectedDate!, 'yyyy-MM-dd')}&time=${encodeURIComponent(selectedSlotId)}`
+      `/booking/details?service=${encodeURIComponent(service)}&date=${format(selectedDate, 'yyyy-MM-dd')}&time=${encodeURIComponent(selectedSlotId)}`
     );
   };
+
+  if (!service) {
+    return null;
+  }
 
   return (
     <div className="space-y-6 py-4 max-w-md mx-auto px-4">
@@ -95,7 +96,7 @@ export default function DateTimePage() {
       </button>
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Select Date & Time</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Select Date &amp; Time</h1>
         <p className="text-gray-600 mt-1">Step 2 — Pick from the calendar</p>
       </div>
 

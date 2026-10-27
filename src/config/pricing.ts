@@ -27,6 +27,7 @@ export const REGION_MULTIPLIER: Record<string, number> = {
 // 远程附加费（超出服务范围/距离过远）
 const getRemoteSurcharge = (prefix: string): number => {
   const surchargeMap: Record<string, number> = {
+    L: 0,
     CH: 10,
     WA: 5,
     M: 15,

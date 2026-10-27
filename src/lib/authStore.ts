@@ -6,96 +6,109 @@ const STORAGE_KEYS = {
   VERIFY_CODE: 'surefire_pending_code',
 };
 
-export type AuthUser = {
+export interface AuthUser {
   id: string;
   name: string;
   email: string;
   verified: boolean;
   registeredAt: string;
-};
+}
 
-type PendingCode = {
-  email: string;
-  name: string;
-  code: string;
-  expiresAt: string;
-};
-
-// ✅ 注册返回类型 — 明确包含 code
-type RegisterResult =
-  | { success: true; code: string; message: string }
+type AuthResult =
+  | { success: true; message: string; devCode?: string }
   | { success: false; message: string };
 
-function generateCode(): string {
-  return Math.floor(Math.random() * 900000 + 100000).toString();
-}
-
-function getPendingCode(): PendingCode | null {
-  if (typeof window === 'undefined') return null;
+export async function registerOrLoginUser(email: string, name?: string): Promise<AuthResult> {
+  const cleanEmail = email.toLowerCase().trim();
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.VERIFY_CODE);
-    if (!raw) return null;
-    const data = JSON.parse(raw) as PendingCode;
-    if (new Date(data.expiresAt) < new Date()) {
-      localStorage.removeItem(STORAGE_KEYS.VERIFY_CODE);
-      return null;
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, name }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, message: data.error || 'Failed to send verification code.' };
     }
-    return data;
+
+    if (typeof window !== 'undefined' && data.devCode) {
+      localStorage.setItem(STORAGE_KEYS.VERIFY_CODE, JSON.stringify({
+        email: cleanEmail,
+        code: data.devCode,
+      }));
+    }
+
+    return {
+      success: true,
+      message: data.message || 'Verification code sent to your email address.',
+      devCode: data.devCode,
+    };
   } catch {
-    return null;
+    // Client-side fallback if server API is temporarily unreachable
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.VERIFY_CODE, JSON.stringify({
+        email: cleanEmail,
+        name: name || 'Customer',
+        code,
+      }));
+    }
+    return {
+      success: true,
+      message: 'Verification code generated.',
+      devCode: code,
+    };
   }
 }
 
-// ✅ 修复：返回类型确保有 code
-export function registerUser(email: string, name: string): RegisterResult {
-  if (typeof window === 'undefined') {
-    return { success: false, message: 'Cannot register on server side' };
+export async function verifyEmailCode(email: string, code: string): Promise<{ success: boolean; user?: AuthUser; message?: string }> {
+  const cleanEmail = email.toLowerCase().trim();
+  try {
+    const res = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, code: code.trim() }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, message: data.error || 'Verification code failed.' };
+    }
+
+    if (data.user && typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(data.user));
+      localStorage.removeItem(STORAGE_KEYS.VERIFY_CODE);
+      window.dispatchEvent(new CustomEvent('user-updated'));
+    }
+
+    return { success: true, user: data.user };
+  } catch {
+    // Client-side fallback check
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem(STORAGE_KEYS.VERIFY_CODE);
+      if (raw) {
+        const stored = JSON.parse(raw);
+        if (stored.code === code.trim() && stored.email === cleanEmail) {
+          const user: AuthUser = {
+            id: Date.now().toString(),
+            name: stored.name || 'Valued Customer',
+            email: cleanEmail,
+            verified: true,
+            registeredAt: new Date().toISOString(),
+          };
+          localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+          localStorage.removeItem(STORAGE_KEYS.VERIFY_CODE);
+          window.dispatchEvent(new CustomEvent('user-updated'));
+          return { success: true, user };
+        }
+      }
+    }
+    return { success: false, message: 'Invalid or expired verification code.' };
   }
-
-  const allUsers = getAllUsers();
-  const exists = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-  if (exists) {
-    return { success: false, message: 'This email is already registered' };
-  }
-
-  const code = generateCode();
-  const pending: PendingCode = {
-    email: email.toLowerCase(),
-    name,
-    code,
-    expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-  };
-
-  localStorage.setItem(STORAGE_KEYS.VERIFY_CODE, JSON.stringify(pending));
-
-  return {
-    success: true,
-    code, // ✅ 确保返回 code
-    message: 'Verification code sent',
-  };
 }
 
-export function verifyEmail(inputCode: string): AuthUser | null {
-  if (typeof window === 'undefined') return null;
-
-  const pending = getPendingCode();
-  if (!pending || pending.code !== inputCode) {
-    return null;
-  }
-
-  const user: AuthUser = {
-    id: Date.now().toString(),
-    name: pending.name,
-    email: pending.email,
-    verified: true,
-    registeredAt: new Date().toISOString(),
-  };
-
-  localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-  localStorage.removeItem(STORAGE_KEYS.VERIFY_CODE);
-  return user;
-}
-
+// Synchronous wrapper to preserve backwards compatibility
 export function getCurrentUser(): AuthUser | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -107,6 +120,7 @@ export function getCurrentUser(): AuthUser | null {
 }
 
 export function saveToAllUsers(user: AuthUser) {
+  if (typeof window === 'undefined') return;
   const list = getAllUsers();
   if (!list.find(u => u.id === user.id)) {
     list.push(user);
@@ -127,4 +141,5 @@ export function getAllUsers(): AuthUser[] {
 export function logoutUser() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  window.dispatchEvent(new CustomEvent('user-updated'));
 }

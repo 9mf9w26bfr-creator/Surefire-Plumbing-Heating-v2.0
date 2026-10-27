@@ -38,13 +38,13 @@ export default function SelectServicePage() {
 
   const handleNext = () => {
     if (!selected) return;
-    router.push(`/booking/select-slot?service=${selected}`);
+    router.push(`/booking/datetime?service=${encodeURIComponent(selected)}`);
   };
 
   return (
     <div className="space-y-6 py-4 max-w-md mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-primary">Select Service</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Select Service</h1>
         <p className="text-gray-600 mt-1">Choose the type of service you need</p>
       </div>
 

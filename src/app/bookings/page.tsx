@@ -2,9 +2,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Calendar, Clock, MapPin, ChevronRight, User, Search, LogIn } from 'lucide-react';
+import { Calendar, Clock, MapPin, ChevronRight, User, Search, LogIn, Trash2 } from 'lucide-react';
 import type { BookingRecord } from '@/lib/bookingStore';
-import { getAllBookings, deleteBooking } from '@/lib/bookingStore';
+import { getAllBookings, deleteBooking, fetchServerBookings } from '@/lib/bookingStore';
 import { getCurrentUser } from '@/lib/authStore';
 
 const statusConfig = {
@@ -31,11 +31,17 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
-  const currentUser = getCurrentUser();
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
 
-  // 统一刷新数据函数
-  const refreshBookings = useCallback(() => {
-    setBookings(getAllBookings());
+  const refreshBookings = useCallback(async () => {
+    const user = getCurrentUser();
+    setCurrentUser(user);
+    if (user?.email) {
+      const serverList = await fetchServerBookings(user.email);
+      setBookings(serverList);
+    } else {
+      setBookings(getAllBookings());
+    }
     setIsLoaded(true);
   }, []);
 
@@ -50,12 +56,12 @@ export default function BookingsPage() {
     return (
       booking.name.toLowerCase().includes(query) ||
       booking.postcode.toLowerCase().includes(query) ||
+      (booking.referenceNumber && booking.referenceNumber.toLowerCase().includes(query)) ||
       booking.id.toLowerCase().includes(query) ||
       booking.service.toLowerCase().includes(query)
     );
   });
 
-  // 删除处理
   const handleDelete = (id: string, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -70,13 +76,13 @@ export default function BookingsPage() {
     return (
       <div className="space-y-6 py-16 text-center max-w-md mx-auto">
         <Calendar size={48} className="mx-auto text-gray-300" />
-        <h1 className="text-2xl font-bold text-primary">My Bookings</h1>
+        <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>
         <p className="text-gray-500">
           Please sign in to view your booking history and manage appointments.
         </p>
         <Link
           href="/profile"
-          className="inline-flex items-center gap-2 bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors shadow-sm"
         >
           <LogIn size={18} />
           Sign In / Register
@@ -99,11 +105,11 @@ export default function BookingsPage() {
     return (
       <div className="space-y-6 py-12 text-center max-w-md mx-auto">
         <Calendar size={48} className="mx-auto text-gray-300" />
-        <h1 className="text-2xl font-bold text-primary">My Bookings</h1>
-        <p className="text-gray-500">You haven't submitted any bookings yet.</p>
+        <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>
+        <p className="text-gray-500">You haven&apos;t submitted any bookings yet.</p>
         <Link
           href="/booking"
-          className="inline-flex items-center gap-2 bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors shadow-sm"
         >
           <Calendar size={18} />
           Book a Service
@@ -117,7 +123,7 @@ export default function BookingsPage() {
       {/* 页面头部 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-primary">My Bookings</h1>
+          <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>
           <p className="text-gray-600 mt-1">
             Hello, <strong>{currentUser.name}</strong> —{' '}
             {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
@@ -125,7 +131,7 @@ export default function BookingsPage() {
         </div>
         <Link
           href="/booking"
-          className="inline-flex items-center gap-1.5 bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-800 transition-colors whitespace-nowrap"
+          className="inline-flex items-center gap-1.5 bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-800 transition-colors whitespace-nowrap shadow-sm"
         >
           <Calendar size={16} />
           New
@@ -157,19 +163,19 @@ export default function BookingsPage() {
           filteredBookings.map((booking) => (
             <Link
               key={booking.id}
-              href={`/bookings/${booking.id}`}
-              className="block border border-gray-100 rounded-xl p-4 hover:shadow-md transition-all group bg-white"
+              href={`/booking/${booking.id}`}
+              className="block border border-gray-100 rounded-xl p-4 hover:shadow-md transition-all group bg-white relative"
             >
               <div className="flex items-start justify-between mb-3">
                 <span
                   className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                    statusConfig[booking.status].color
+                    statusConfig[booking.status]?.color || 'bg-gray-100 text-gray-700'
                   }`}
                 >
-                  {statusConfig[booking.status].label}
+                  {statusConfig[booking.status]?.label || booking.status}
                 </span>
                 <span className="text-xs font-mono text-gray-400">
-                  {booking.id.slice(0, 8)}…
+                  {booking.referenceNumber || booking.id.slice(0, 8)}
                 </span>
               </div>
 

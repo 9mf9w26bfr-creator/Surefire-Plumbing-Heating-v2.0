@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Surefire North West — Social Lead Clipper",
+  "version": "1.0.0",
+  "description": "One-click highlight & capture local Facebook Group inquiries directly to Surefire Plumbing & Heating Workbench.",
+  "permissions": [
+    "contextMenus",
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.facebook.com/*",
+    "http://localhost:3000/*",
+    "https://*.vercel.app/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Surefire Social Lead Clipper"
+  }
+}
