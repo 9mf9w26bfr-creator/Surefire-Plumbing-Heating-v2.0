@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -10,7 +10,7 @@ import { generateEstimate, type EstimateResult } from '@/config/pricing';
 import { getCoverageDetail, type CoverageDetail } from '@/utils/serviceAreaEngine';
 import { getCurrentUser } from '@/lib/authStore';
 
-export default function DetailsPage() {
+function DetailsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -437,5 +437,13 @@ export default function DetailsPage() {
         Review Booking &rarr;
       </button>
     </div>
+  );
+}
+
+export default function DetailsPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-gray-500">Loading booking form...</div>}>
+      <DetailsContent />
+    </Suspense>
   );
 }

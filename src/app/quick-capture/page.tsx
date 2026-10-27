@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
 
-export default function QuickCapturePage() {
+function QuickCaptureContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [result, setResult] = useState<any>(null);
@@ -151,5 +151,19 @@ export default function QuickCapturePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function QuickCapturePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 text-sm">
+          正在加载中转窗口...
+        </div>
+      }
+    >
+      <QuickCaptureContent />
+    </Suspense>
   );
 }

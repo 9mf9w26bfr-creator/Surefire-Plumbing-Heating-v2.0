@@ -1,11 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Home, Calendar, Clock, User, Phone, MapPin, FileText, Calculator, AlertCircle, Mail, Loader2, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { saveBookingAsync, type BookingRecord } from '@/lib/bookingStore';
 
-export default function ConfirmPage() {
+function ConfirmContent() {
   const searchParams = useSearchParams();
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -227,5 +227,13 @@ export default function ConfirmPage() {
         By submitting, you agree to be contacted regarding your booking request. Gas Safe registered engineers.
       </p>
     </div>
+  );
+}
+
+export default function ConfirmPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-gray-500">Loading booking review...</div>}>
+      <ConfirmContent />
+    </Suspense>
   );
 }

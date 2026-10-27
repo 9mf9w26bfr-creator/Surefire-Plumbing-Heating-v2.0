@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { format, addMonths, startOfDay, isBefore, isSameDay } from 'date-fns';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -13,7 +13,7 @@ const ALL_SLOTS = [
   { id: 'saturday', label: 'Saturday — 08:00–13:00', days: [6] },              // Sat only
 ];
 
-export default function DateTimePage() {
+function DateTimeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const service = searchParams.get('service') || '';
@@ -215,5 +215,13 @@ export default function DateTimePage() {
         </ul>
       </div>
     </div>
+  );
+}
+
+export default function DateTimePage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-gray-500">Loading appointment slots...</div>}>
+      <DateTimeContent />
+    </Suspense>
   );
 }

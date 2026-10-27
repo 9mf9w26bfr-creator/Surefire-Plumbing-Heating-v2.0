@@ -38,3 +38,4 @@ lerna-debug.log*
 *.temp
 .cache/data/*.db
 data/*.json
+*.tsbuildinfo

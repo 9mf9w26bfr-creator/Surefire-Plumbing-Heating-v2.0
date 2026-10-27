@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Wrench, Droplets, ThermometerSun, Settings, ChevronRight } from 'lucide-react';
 
@@ -30,7 +30,7 @@ const services = [
   },
 ];
 
-export default function SelectServicePage() {
+function SelectServiceContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const selectedParam = searchParams.get('service') || '';
@@ -86,5 +86,13 @@ export default function SelectServicePage() {
         Continue <ChevronRight size={18} />
       </button>
     </div>
+  );
+}
+
+export default function SelectServicePage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-gray-500">Loading service selection...</div>}>
+      <SelectServiceContent />
+    </Suspense>
   );
 }
